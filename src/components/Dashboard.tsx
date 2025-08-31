@@ -1,6 +1,7 @@
 // Main dashboard component for UTX
 import { useState, useMemo } from 'react';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useIncome } from '@/hooks/useIncome';
 import { formatCurrency, getCurrentWeekRange, getCurrentMonthRange, isExpenseInRange } from '@/utils/dateUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,17 +13,19 @@ import { CategoryManager } from './CategoryManager';
 import { BudgetManager } from './BudgetManager';
 import { IncomeManager } from './IncomeManager';
 import { CashFlowAnalysis } from './CashFlowAnalysis';
+import { MonthlyBreakdown } from './MonthlyBreakdown';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { exportToCSV } from '@/utils/exportUtils';
 
 export const Dashboard = () => {
   const { expenses, categories, loading, refetch } = useExpenses();
+  const { income } = useIncome();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
 
   // Calculate statistics with memoization for better performance
-  const { weeklyExpenses, monthlyExpenses, weeklyTotal, monthlyTotal, totalExpenses, recentExpenses } = useMemo(() => {
+  const { weeklyExpenses, monthlyExpenses, weeklyTotal, monthlyTotal, totalExpenses, recentExpenses, monthlyIncome, weeklyIncome, netMonthlyFlow } = useMemo(() => {
     const weekRange = getCurrentWeekRange();
     const monthRange = getCurrentMonthRange();
 
@@ -34,9 +37,23 @@ export const Dashboard = () => {
       isExpenseInRange(expense.date, monthRange.start, monthRange.end)
     );
 
+    // Calculate income for the same periods
+    const weeklyIncome = income.filter(item => {
+      const itemDate = new Date(item.date);
+      return isExpenseInRange(item.date, weekRange.start, weekRange.end);
+    }).reduce((sum, item) => sum + item.amount, 0);
+
+    const monthlyIncome = income.filter(item => {
+      const itemDate = new Date(item.date);
+      return isExpenseInRange(item.date, monthRange.start, monthRange.end);
+    }).reduce((sum, item) => sum + item.amount, 0);
+
     const weeklyTotal = weeklyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const monthlyTotal = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Calculate net cash flow
+    const netMonthlyFlow = monthlyIncome - monthlyTotal;
 
     // Get recent expenses (last 5)
     const recentExpenses = expenses.slice(0, 5);
@@ -47,9 +64,12 @@ export const Dashboard = () => {
       weeklyTotal,
       monthlyTotal,
       totalExpenses,
-      recentExpenses
+      recentExpenses,
+      monthlyIncome,
+      weeklyIncome,
+      netMonthlyFlow
     };
-  }, [expenses]);
+  }, [expenses, income]);
 
   const handleExportCSV = () => {
     exportToCSV(expenses, 'utx-expenses');
@@ -142,27 +162,27 @@ export const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week</CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
+            <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(weeklyTotal)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(monthlyIncome)}</div>
             <p className="text-xs text-muted-foreground">
-              {weeklyExpenses.length} expense{weeklyExpenses.length !== 1 ? 's' : ''}
+              This month
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <TrendingDown className="h-4 w-4 text-warning" />
+            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(monthlyTotal)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(monthlyTotal)}</div>
             <p className="text-xs text-muted-foreground">
               {monthlyExpenses.length} expense{monthlyExpenses.length !== 1 ? 's' : ''}
             </p>
@@ -171,13 +191,28 @@ export const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Net Cash Flow</CardTitle>
+            <DollarSign className={`h-4 w-4 ${netMonthlyFlow >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${netMonthlyFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {netMonthlyFlow >= 0 ? '+' : ''}{formatCurrency(netMonthlyFlow)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Week</CardTitle>
             <Calendar className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(weeklyTotal)}</div>
             <p className="text-xs text-muted-foreground">
-              {expenses.length} total expense{expenses.length !== 1 ? 's' : ''}
+              {weeklyExpenses.length} expense{weeklyExpenses.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
@@ -198,12 +233,13 @@ export const Dashboard = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
+          <TabsTrigger value="breakdown">Monthly</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -264,6 +300,10 @@ export const Dashboard = () => {
 
         <TabsContent value="cashflow" className="space-y-4">
           <CashFlowAnalysis />
+        </TabsContent>
+
+        <TabsContent value="breakdown" className="space-y-4">
+          <MonthlyBreakdown />
         </TabsContent>
       </Tabs>
     </div>
