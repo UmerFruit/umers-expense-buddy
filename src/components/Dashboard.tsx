@@ -2,7 +2,8 @@
 import { useState, useMemo } from 'react';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useIncome } from '@/hooks/useIncome';
-import { formatCurrency, getCurrentWeekRange, getCurrentMonthRange, isExpenseInRange } from '@/utils/dateUtils';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getCurrentWeekRange, getCurrentMonthRange, isExpenseInRange } from '@/utils/dateUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, TrendingUp, TrendingDown, Calendar, Download, DollarSign, Target, BarChart3 } from 'lucide-react';
@@ -21,6 +22,7 @@ import { exportToCSV } from '@/utils/exportUtils';
 export const Dashboard = () => {
   const { expenses, categories, loading, refetch } = useExpenses();
   const { income } = useIncome();
+  const { formatCurrency } = useCurrency();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
 

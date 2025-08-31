@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 
 export const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -47,6 +48,8 @@ export const Navigation = () => {
             <span className="text-sm text-muted-foreground hidden sm:inline">
               Welcome, {user.email}
             </span>
+            
+            <CurrencySwitcher />
             
             <ThemeToggle />
             

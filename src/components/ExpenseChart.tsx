@@ -1,6 +1,6 @@
 // Expense chart component for UTX - Simple bar chart visualization
 import { Expense, Category } from '@/hooks/useExpenses';
-import { formatCurrency } from '@/utils/dateUtils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface ExpenseChartProps {
   expenses: Expense[];
@@ -8,6 +8,7 @@ interface ExpenseChartProps {
 }
 
 export const ExpenseChart = ({ expenses, categories }: ExpenseChartProps) => {
+  const { formatCurrency } = useCurrency();
   // Group expenses by category
   const categoryTotals = expenses.reduce((acc, expense) => {
     const categoryId = expense.category_id;

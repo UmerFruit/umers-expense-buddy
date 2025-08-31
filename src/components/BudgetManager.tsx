@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -8,11 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, TrendingUp, AlertTriangle } from 'lucide-react';
 import { AddBudgetForm } from './AddBudgetForm';
-import { formatCurrency } from '@/utils/dateUtils';
 
 export const BudgetManager = () => {
   const { budgets, loading } = useBudgets();
   const { expenses } = useExpenses();
+  const { formatCurrency } = useCurrency();
   const [showAddBudget, setShowAddBudget] = useState(false);
 
   // Calculate budget progress
