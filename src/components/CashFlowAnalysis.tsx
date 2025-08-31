@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
 import { useIncome } from '@/hooks/useIncome';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle } from 'lucide-react';
-import { formatCurrency, getCurrentMonthRange, isExpenseInRange } from '@/utils/dateUtils';
+import { getCurrentMonthRange, isExpenseInRange } from '@/utils/dateUtils';
 
 export const CashFlowAnalysis = () => {
   const { income } = useIncome();
   const { expenses } = useExpenses();
+  const { formatCurrency } = useCurrency();
 
   const cashFlowData = useMemo(() => {
     const monthRange = getCurrentMonthRange();

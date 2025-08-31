@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useIncome } from '@/hooks/useIncome';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, DollarSign, Calendar, Repeat, BarChart3 } from 'lucide-react';
-import { formatCurrency } from '@/utils/dateUtils';
 
 interface IncomeSourceData {
   source: string;
@@ -17,6 +17,7 @@ interface IncomeSourceData {
 
 export const IncomeAnalysis = () => {
   const { income } = useIncome();
+  const { formatCurrency } = useCurrency();
 
   const incomeAnalysis = useMemo(() => {
     // Group income by source

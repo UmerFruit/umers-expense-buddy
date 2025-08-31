@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useIncome } from '@/hooks/useIncome';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
-import { formatCurrency } from '@/utils/dateUtils';
 
 interface MonthlyData {
   month: string;
@@ -20,6 +20,7 @@ interface MonthlyData {
 export const MonthlyBreakdown = () => {
   const { income } = useIncome();
   const { expenses } = useExpenses();
+  const { formatCurrency } = useCurrency();
 
   const monthlyData = useMemo(() => {
     // Get the last 12 months

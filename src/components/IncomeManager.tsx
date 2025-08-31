@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useIncome } from '@/hooks/useIncome';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, DollarSign, Calendar, Repeat, BarChart3 } from 'lucide-react';
 import { AddIncomeForm } from './AddIncomeForm';
 import { IncomeAnalysis } from './IncomeAnalysis';
-import { formatCurrency } from '@/utils/dateUtils';
 
 export const IncomeManager = () => {
   const { income, loading } = useIncome();
+  const { formatCurrency } = useCurrency();
   const [showAddIncome, setShowAddIncome] = useState(false);
 
   // Calculate income statistics

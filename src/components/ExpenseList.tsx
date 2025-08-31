@@ -1,6 +1,7 @@
 // Expense list component for UTX
 import { useState } from 'react';
-import { formatDate, formatCurrency } from '@/utils/dateUtils';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatDate } from '@/utils/dateUtils';
 import { Expense, Category } from '@/hooks/useExpenses';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ interface ExpenseListProps {
 export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseListProps) => {
   const { deleteExpense } = useExpenses();
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const handleDelete = async (expense: Expense) => {
