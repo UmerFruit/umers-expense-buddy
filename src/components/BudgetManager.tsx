@@ -9,9 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, TrendingUp, AlertTriangle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, AlertTriangle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { AddBudgetForm } from './AddBudgetForm';
-import { EditBudgetForm } from './EditBudgetForm';
 import { useToast } from '@/hooks/use-toast';
 
 export const BudgetManager = () => {
@@ -20,7 +19,6 @@ export const BudgetManager = () => {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const [showAddBudget, setShowAddBudget] = useState(false);
-  const [editingBudget, setEditingBudget] = useState<any>(null);
   const [deletingBudget, setDeletingBudget] = useState<any>(null);
 
   const handleBudgetCreated = () => {
@@ -28,13 +26,6 @@ export const BudgetManager = () => {
     // Use setTimeout to ensure the UI state is updated before refetch
     setTimeout(() => {
       refetch(); // Explicitly refetch budgets
-    }, 100);
-  };
-
-  const handleBudgetUpdated = () => {
-    setEditingBudget(null);
-    setTimeout(() => {
-      refetch();
     }, 100);
   };
 
@@ -175,10 +166,6 @@ export const BudgetManager = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingBudget(budget)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => setDeletingBudget(budget)}
                             className="text-destructive"
@@ -220,21 +207,6 @@ export const BudgetManager = () => {
           })}
         </div>
       )}
-
-      {/* Edit Budget Dialog */}
-      <Dialog open={!!editingBudget} onOpenChange={() => setEditingBudget(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Budget</DialogTitle>
-          </DialogHeader>
-          {editingBudget && (
-            <EditBudgetForm
-              budget={editingBudget}
-              onSuccess={handleBudgetUpdated}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Budget Confirmation */}
       <AlertDialog open={!!deletingBudget} onOpenChange={() => setDeletingBudget(null)}>
