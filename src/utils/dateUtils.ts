@@ -1,23 +1,16 @@
 // Date utility functions for UTX
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export const formatDate = (date: string | Date) => {
   return format(new Date(date), 'MMM dd, yyyy');
 };
 
 export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-};
-
-export const getCurrentWeekRange = () => {
-  const now = new Date();
-  return {
-    start: startOfWeek(now),
-    end: endOfWeek(now),
-  };
+  const formatter = new Intl.NumberFormat('en-PK', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  return `Rs${formatter.format(Math.abs(amount))}`;
 };
 
 export const getCurrentMonthRange = () => {

@@ -31,7 +31,7 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
     setLoading(true);
 
     // Validation
-    if (!formData.amount || !formData.category_id || !formData.date) {
+    if (!formData.amount || !formData.date) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -41,8 +41,8 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
       return;
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
+    const amount = Number.parseFloat(formData.amount);
+    if (Number.isNaN(amount) || amount <= 0) {
       toast({
         title: "Error",
         description: "Please enter a valid amount",
@@ -55,7 +55,7 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
     try {
       const { error } = await addExpense({
         amount,
-        category_id: formData.category_id,
+        category_id: formData.category_id || null,
         date: formData.date,
         description: formData.description.trim() || null,
       });
@@ -71,7 +71,7 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
           title: "Success",
           description: "Expense added successfully",
         });
-        
+
         // Reset form
         setFormData({
           amount: '',
@@ -79,18 +79,19 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
           date: new Date().toISOString().split('T')[0],
           description: '',
         });
-        
+
         onExpenseChange?.();
         onSuccess();
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error,
         variant: "destructive",
       });
+      
     }
-    
+
     setLoading(false);
   };
 
@@ -106,11 +107,12 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
             min="0"
             placeholder="0.00"
             value={formData.amount}
+            className="[appearance:textfield] [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden"
             onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="date">Date *</Label>
           <Input
@@ -124,11 +126,10 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category">Category *</Label>
-        <Select 
-          value={formData.category_id} 
+        <Label htmlFor="category">Category</Label>
+        <Select
+          value={formData.category_id}
           onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a category" />
@@ -137,8 +138,8 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
             {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
+                  <div
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: category.color }}
                   />
                   {category.name}

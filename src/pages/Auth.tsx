@@ -89,9 +89,10 @@ const Auth = () => {
       return;
     }
 
+    // Validate minimum password length
     if (signUpData.password.length < 6) {
       toast({
-        title: "Error",
+        title: "Password too short",
         description: "Password must be at least 6 characters long",
         variant: "destructive",
       });

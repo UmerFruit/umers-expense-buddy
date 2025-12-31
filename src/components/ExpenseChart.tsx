@@ -1,6 +1,6 @@
 // Expense chart component for UTX - Simple bar chart visualization
 import { Expense, Category } from '@/hooks/useExpenses';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/dateUtils';
 
 interface ExpenseChartProps {
   expenses: Expense[];
@@ -8,7 +8,6 @@ interface ExpenseChartProps {
 }
 
 export const ExpenseChart = ({ expenses, categories }: ExpenseChartProps) => {
-  const { formatCurrency } = useCurrency();
   // Group expenses by category
   const categoryTotals = expenses.reduce((acc, expense) => {
     const categoryId = expense.category_id;
@@ -23,6 +22,7 @@ export const ExpenseChart = ({ expenses, categories }: ExpenseChartProps) => {
   const chartData = Object.entries(categoryTotals).map(([categoryId, total]) => {
     const category = categories.find(c => c.id === categoryId);
     return {
+      id: categoryId,
       name: category?.name || 'Unknown',
       value: total,
       color: category?.color || '#6B7280',
@@ -42,20 +42,14 @@ export const ExpenseChart = ({ expenses, categories }: ExpenseChartProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      <div className="text-center p-4 bg-muted/50 rounded-lg">
-        <p className="text-2xl font-bold">{formatCurrency(totalValue)}</p>
-        <p className="text-sm text-muted-foreground">Total Expenses</p>
-      </div>
-
       {/* Chart bars */}
       <div className="space-y-3">
-        {chartData.map((item, index) => {
+        {chartData.map((item) => {
           const percentage = (item.value / maxValue) * 100;
           const share = (item.value / totalValue) * 100;
           
           return (
-            <div key={index} className="space-y-2">
+            <div key={item.id} className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <div 

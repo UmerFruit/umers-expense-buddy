@@ -22,7 +22,7 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     amount: expense.amount.toString(),
-    category_id: expense.category_id,
+    category_id: expense.category_id || '',
     date: expense.date,
     description: expense.description || '',
   });
@@ -32,7 +32,7 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
     setLoading(true);
 
     // Validation
-    if (!formData.amount || !formData.category_id || !formData.date) {
+    if (!formData.amount || !formData.date) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -42,8 +42,8 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
       return;
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
+    const amount = Number.parseFloat(formData.amount);
+    if (Number.isNaN(amount) || amount <= 0) {
       toast({
         title: "Error",
         description: "Please enter a valid amount",
@@ -56,7 +56,7 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
     try {
       const { error } = await updateExpense(expense.id, {
         amount,
-        category_id: formData.category_id,
+        category_id: formData.category_id || null,
         date: formData.date,
         description: formData.description.trim() || null,
       });
@@ -78,7 +78,7 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error,
         variant: "destructive",
       });
     }
@@ -99,6 +99,7 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
             placeholder="0.00"
             value={formData.amount}
             onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+            className="[appearance:textfield] [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden"
             required
           />
         </div>
@@ -110,17 +111,17 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
             type="date"
             value={formData.date}
             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+            className="[&::-webkit-calendar-picker-indicator]:text-primary"
             required
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category">Category *</Label>
+        <Label htmlFor="category">Category</Label>
         <Select 
-          value={formData.category_id} 
+          value={formData.category_id || ''} 
           onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a category" />

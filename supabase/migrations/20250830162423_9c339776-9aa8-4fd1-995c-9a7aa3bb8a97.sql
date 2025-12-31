@@ -27,43 +27,43 @@ ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own categories" 
 ON public.categories 
 FOR SELECT 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create their own categories" 
 ON public.categories 
 FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update their own categories" 
 ON public.categories 
 FOR UPDATE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete their own categories" 
 ON public.categories 
 FOR DELETE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 -- Expenses policies
 CREATE POLICY "Users can view their own expenses" 
 ON public.expenses 
 FOR SELECT 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create their own expenses" 
 ON public.expenses 
 FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update their own expenses" 
 ON public.expenses 
 FOR UPDATE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete their own expenses" 
 ON public.expenses 
 FOR DELETE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 -- Create function to update timestamps
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -84,14 +84,20 @@ CREATE TRIGGER update_expenses_updated_at
 CREATE OR REPLACE FUNCTION public.create_default_categories()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.categories (user_id, name, color) VALUES
-    (NEW.id, 'Food & Dining', '#EF4444'),
-    (NEW.id, 'Transportation', '#3B82F6'),
-    (NEW.id, 'Entertainment', '#8B5CF6'),
-    (NEW.id, 'Utilities', '#F59E0B'),
-    (NEW.id, 'Healthcare', '#10B981'),
-    (NEW.id, 'Shopping', '#EC4899'),
-    (NEW.id, 'Other', '#6B7280');
+  -- Only create default categories if the user doesn't already have any
+  IF NOT EXISTS (SELECT 1 FROM public.categories WHERE user_id = NEW.id) THEN
+    INSERT INTO public.categories (user_id, name, color, type) VALUES
+      (NEW.id, 'Food & Dining', '#EF4444', 'expense'),
+      (NEW.id, 'Transportation', '#3B82F6', 'expense'),
+      (NEW.id, 'Entertainment', '#8B5CF6', 'expense'),
+      (NEW.id, 'Utilities', '#F59E0B', 'expense'),
+      (NEW.id, 'Healthcare', '#10B981', 'expense'),
+      (NEW.id, 'Shopping', '#EC4899', 'expense'),
+      (NEW.id, 'Other', '#6B7280', 'both'),
+      (NEW.id, 'Salary', '#22C55E', 'income'),
+      (NEW.id, 'Freelance', '#84CC16', 'income'),
+      (NEW.id, 'Investment', '#F59E0B', 'income');
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

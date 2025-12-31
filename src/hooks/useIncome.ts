@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -6,13 +6,18 @@ export interface Income {
   id: string;
   user_id: string;
   amount: number;
-  source: string;
+  category_id: string | null;
   date: string;
   description: string | null;
   is_recurring: boolean;
   recurring_period: 'weekly' | 'monthly' | 'yearly' | null;
   created_at: string;
   updated_at: string;
+  categories?: {
+    id: string;
+    name: string;
+    color: string;
+  };
 }
 
 export function useIncome() {
@@ -20,13 +25,20 @@ export function useIncome() {
   const [income, setIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchIncome = async () => {
+  const fetchIncome = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
     const { data, error } = await supabase
       .from('income')
-      .select('*')
+      .select(`
+        *,
+        categories (
+          id,
+          name,
+          color
+        )
+      `)
       .eq('user_id', user.id)
       .order('date', { ascending: false });
 
@@ -36,7 +48,7 @@ export function useIncome() {
       setIncome((data || []) as Income[]);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   const createIncome = async (incomeData: Omit<Income, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'User not authenticated' };
@@ -87,7 +99,7 @@ export function useIncome() {
 
   useEffect(() => {
     fetchIncome();
-  }, [user]);
+  }, [fetchIncome]);
 
   return {
     income,

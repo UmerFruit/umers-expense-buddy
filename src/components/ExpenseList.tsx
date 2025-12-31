@@ -1,21 +1,14 @@
 // Expense list component for UTX
 import { useState } from 'react';
-import { useCurrency } from '@/contexts/CurrencyContext';
-import { formatDate } from '@/utils/dateUtils';
-import { Expense, Category } from '@/hooks/useExpenses';
+import { formatDate, formatCurrency } from '@/utils/dateUtils';
+import { Expense, Category,useExpenses } from '@/hooks/useExpenses';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, MoreHorizontal } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EditExpenseForm } from './EditExpenseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useExpenses } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -26,26 +19,47 @@ interface ExpenseListProps {
 export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseListProps) => {
   const { deleteExpense } = useExpenses();
   const { toast } = useToast();
-  const { formatCurrency } = useCurrency();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; expense: Expense | null }>({
+    open: false,
+    expense: null,
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(expenses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedExpenses = expenses.slice(startIndex, endIndex);
+
+  // Reset to page 1 when items per page changes
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number.parseInt(value));
+    setCurrentPage(1);
+  };
 
   const handleDelete = async (expense: Expense) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      const { error } = await deleteExpense(expense.id);
-      
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete expense",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Expense deleted successfully",
-        });
-        onExpenseChange?.();
-      }
+    setConfirmDelete({ open: true, expense });
+  };
+
+  const confirmDeleteExpense = async () => {
+    if (!confirmDelete.expense) return;
+
+    const { error } = await deleteExpense(confirmDelete.expense.id);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete expense",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully",
+      });
+      onExpenseChange?.();
     }
   };
 
@@ -61,7 +75,7 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
   return (
     <>
       <div className="space-y-3">
-        {expenses.map((expense) => (
+        {paginatedExpenses.map((expense) => (
           <div
             key={expense.id}
             className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors space-y-2 sm:space-y-0"
@@ -73,12 +87,12 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
                   style={{ backgroundColor: expense.categories?.color || '#6B7280' }}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm sm:text-base truncate">{expense.description || 'No description'}</p>
-                  <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <p className="font-medium text-sm sm:text-base truncate">{expense.categories?.name || 'Unknown'}</p>
+                  {expense.description && (
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate mt-1">{expense.description}</p>
+                  )}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
                     <span>{formatDate(expense.date)}</span>
-                    <Badge variant="secondary" className="text-xs w-fit">
-                      {expense.categories?.name || 'Unknown'}
-                    </Badge>
                   </div>
                 </div>
               </div>
@@ -89,30 +103,72 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
                 {formatCurrency(expense.amount)}
               </span>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setEditingExpense(expense)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleDelete(expense)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingExpense(expense)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(expense)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {expenses.length > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Show</span>
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">entries</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {startIndex + 1}-{Math.min(endIndex, expenses.length)} of {expenses.length}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog open={!!editingExpense} onOpenChange={() => setEditingExpense(null)}>
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -129,6 +185,17 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(open) => setConfirmDelete({ open, expense: null })}
+        title="Delete Expense"
+        description="Are you sure you want to delete this expense? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteExpense}
+        variant="destructive"
+      />
     </>
   );
 };

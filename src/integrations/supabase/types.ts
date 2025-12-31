@@ -14,62 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
-      budgets: {
-        Row: {
-          amount: number
-          category_id: string | null
-          created_at: string
-          end_date: string | null
-          id: string
-          is_active: boolean
-          name: string
-          period: string
-          start_date: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          category_id?: string | null
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          period?: string
-          start_date?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          category_id?: string | null
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          period?: string
-          start_date?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budgets_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
           color: string | null
           created_at: string
           id: string
           name: string
+          type: string
           user_id: string
         }
         Insert: {
@@ -77,6 +28,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          type?: string
           user_id: string
         }
         Update: {
@@ -84,6 +36,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -91,7 +44,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
-          category_id: string
+          category_id: string | null
           created_at: string
           date: string
           description: string | null
@@ -132,41 +85,49 @@ export type Database = {
       income: {
         Row: {
           amount: number
+          category_id: string | null
           created_at: string
           date: string
           description: string | null
           id: string
           is_recurring: boolean
           recurring_period: string | null
-          source: string
           updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          category_id: string
           created_at?: string
           date?: string
           description?: string | null
           id?: string
           is_recurring?: boolean
           recurring_period?: string | null
-          source: string
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          category_id?: string
           created_at?: string
           date?: string
           description?: string | null
           id?: string
           is_recurring?: boolean
           recurring_period?: string | null
-          source?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "income_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -269,7 +230,6 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
@@ -280,14 +240,11 @@ export type Enums<
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -297,9 +254,7 @@ export type CompositeTypes<
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  : never
 
 export const Constants = {
   public: {

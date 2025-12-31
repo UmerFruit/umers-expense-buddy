@@ -1,5 +1,5 @@
 // Expenses management hook for UTX
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -7,7 +7,7 @@ export interface Expense {
   id: string;
   user_id: string;
   amount: number;
-  category_id: string;
+  category_id: string | null;
   date: string;
   description: string | null;
   created_at: string;
@@ -24,6 +24,7 @@ export interface Category {
   user_id: string;
   name: string;
   color: string;
+  type?: string;
   created_at: string;
 }
 
@@ -34,7 +35,7 @@ export function useExpenses() {
   const [loading, setLoading] = useState(true);
 
   // Fetch expenses with category information
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -56,10 +57,10 @@ export function useExpenses() {
       setExpenses(data || []);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   // Fetch categories
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user) return;
     
     const { data, error } = await supabase
@@ -72,7 +73,7 @@ export function useExpenses() {
     } else {
       setCategories(data || []);
     }
-  };
+  }, [user]);
 
   // Add new expense
   const addExpense = async (expense: Omit<Expense, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
@@ -159,6 +160,38 @@ export function useExpenses() {
 
   // Delete category
   const deleteCategory = async (id: string) => {
+    // Check if category is being used by expenses
+    const { data: expensesUsingCategory, error: expensesCheckError } = await supabase
+      .from('expenses')
+      .select('id')
+      .eq('category_id', id)
+      .limit(1);
+
+    if (expensesCheckError) {
+      return { error: expensesCheckError };
+    }
+
+    // Check if category is being used by income
+    const { data: incomeUsingCategory, error: incomeCheckError } = await supabase
+      .from('income')
+      .select('id')
+      .eq('category_id', id)
+      .limit(1);
+
+    if (incomeCheckError) {
+      return { error: incomeCheckError };
+    }
+
+    // If category is being used, return an error
+    if (expensesUsingCategory && expensesUsingCategory.length > 0) {
+      return { error: new Error('Cannot delete category that is being used by expenses') };
+    }
+
+    if (incomeUsingCategory && incomeUsingCategory.length > 0) {
+      return { error: new Error('Cannot delete category that is being used by income entries') };
+    }
+
+    // If not being used, proceed with deletion
     const { error } = await supabase
       .from('categories')
       .delete()
@@ -168,7 +201,7 @@ export function useExpenses() {
       await fetchCategories(); // Refresh the list
       await fetchExpenses(); // Refresh expenses
     }
-    
+
     return { error };
   };
 
@@ -181,7 +214,7 @@ export function useExpenses() {
       setCategories([]);
       setLoading(false);
     }
-  }, [user]);
+  }, [user, fetchExpenses, fetchCategories]);
 
   return {
     expenses,
