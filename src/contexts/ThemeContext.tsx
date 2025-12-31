@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
+
+/* eslint-disable react-refresh/only-export-components */
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -25,18 +27,18 @@ export function ThemeProvider({
   defaultTheme = 'system',
   storageKey = 'utx-theme',
   ...props
-}: ThemeProviderProps) {
+}: Readonly<ThemeProviderProps>) {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
   useEffect(() => {
-    const root = window.document.documentElement;
+    const root = globalThis.document.documentElement;
 
     root.classList.remove('light', 'dark');
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+      const systemTheme = globalThis.matchMedia('(prefers-color-scheme: dark)')
         .matches
         ? 'dark'
         : 'light';
@@ -48,13 +50,15 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
-  const value = {
+  const setThemeValue = useCallback((theme: Theme) => {
+    localStorage.setItem(storageKey, theme);
+    setTheme(theme);
+  }, [storageKey]);
+
+  const value = useMemo(() => ({
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
-    },
-  };
+    setTheme: setThemeValue,
+  }), [theme, setThemeValue]);
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

@@ -48,22 +48,6 @@ All colors MUST be HSL format for proper theming.
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
@@ -105,20 +89,13 @@ All colors MUST be HSL format for proper theming.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -130,13 +107,13 @@ All colors MUST be HSL format for proper theming.
   }
 
   /* Ensure better touch targets on mobile */
-  button, [role="button"], input, select, textarea {
+  /* Exclude color picker buttons and small controls (checkboxes) which need custom sizes */
+  button:not([data-color-picker]):not([data-small-control]):not([role="checkbox"]), 
+  [role="button"]:not([data-color-picker]):not([data-small-control]), 
+  input:not([type="checkbox"]), 
+  select, 
+  textarea {
     @apply min-h-[44px] sm:min-h-[40px];
-  }
-
-  /* Improve scrolling on mobile */
-  * {
-    -webkit-overflow-scrolling: touch;
   }
 
   /* Better focus states for keyboard navigation */

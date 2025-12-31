@@ -31,3 +31,7 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
+// Re-export from the main hooks directory
+// eslint-disable-next-line react-refresh/only-export-components
+export { useToast, toast } from "@/hooks/use-toast";

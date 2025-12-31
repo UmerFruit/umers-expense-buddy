@@ -51,8 +51,28 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      // Attempt to sign out from Supabase (may fail with CORS)
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Supabase sign out error (likely CORS):', error);
+    }
+
+    // Always clear local state and storage
+    setUser(null);
+    setSession(null);
+    
+    // Clear all auth-related items from localStorage
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('sb-')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    return { error: null };
   };
 
   return {
