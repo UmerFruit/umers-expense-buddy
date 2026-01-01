@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useIncome } from '@/hooks/useIncome';
 import { useExpenses } from '@/hooks/useExpenses';
 import { formatCurrency } from '@/utils/dateUtils';
@@ -6,12 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   TrendingUp,
   DollarSign,
   Repeat,
   TrendingDown,
-  Target
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 
 interface IncomeSourceData {
@@ -34,12 +38,110 @@ interface ExpenseCategoryData {
 export const AnalysisDashboard = () => {
   const { income, loading: incomeLoading } = useIncome();
   const { expenses, loading: expensesLoading } = useExpenses();
+  
+  // Selected month state (default to current month)
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  });
+
+  // Calculate the valid date range based on user's first entry
+  const dateRange = useMemo(() => {
+    const allDates: Date[] = [];
+    
+    income.forEach(item => allDates.push(new Date(item.date)));
+    expenses.forEach(item => allDates.push(new Date(item.date)));
+    
+    if (allDates.length === 0) {
+      const now = new Date();
+      return {
+        earliest: { year: now.getFullYear(), month: now.getMonth() },
+        latest: { year: now.getFullYear(), month: now.getMonth() }
+      };
+    }
+    
+    const sortedDates = [...allDates].sort((a, b) => a.getTime() - b.getTime());
+    const earliest = sortedDates[0];
+    const now = new Date();
+    
+    return {
+      earliest: { year: earliest.getFullYear(), month: earliest.getMonth() },
+      latest: { year: now.getFullYear(), month: now.getMonth() }
+    };
+  }, [income, expenses]);
+
+  // Check if we can navigate to previous/next month
+  const canGoPrevious = useMemo(() => {
+    if (selectedDate.year > dateRange.earliest.year) return true;
+    if (selectedDate.year === dateRange.earliest.year && selectedDate.month > dateRange.earliest.month) return true;
+    return false;
+  }, [selectedDate, dateRange]);
+
+  const canGoNext = useMemo(() => {
+    if (selectedDate.year < dateRange.latest.year) return true;
+    if (selectedDate.year === dateRange.latest.year && selectedDate.month < dateRange.latest.month) return true;
+    return false;
+  }, [selectedDate, dateRange]);
+
+  // Navigate months
+  const goToPreviousMonth = () => {
+    if (!canGoPrevious) return;
+    setSelectedDate(prev => {
+      if (prev.month === 0) {
+        return { year: prev.year - 1, month: 11 };
+      }
+      return { year: prev.year, month: prev.month - 1 };
+    });
+  };
+
+  const goToNextMonth = () => {
+    if (!canGoNext) return;
+    setSelectedDate(prev => {
+      if (prev.month === 11) {
+        return { year: prev.year + 1, month: 0 };
+      }
+      return { year: prev.year, month: prev.month + 1 };
+    });
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setSelectedDate({ year: now.getFullYear(), month: now.getMonth() });
+  };
+
+  // Format selected month for display
+  const selectedMonthLabel = useMemo(() => {
+    const date = new Date(selectedDate.year, selectedDate.month);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [selectedDate]);
+
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return selectedDate.year === now.getFullYear() && selectedDate.month === now.getMonth();
+  }, [selectedDate]);
+
+  // Filter data for selected month
+  const selectedMonthIncome = useMemo(() => {
+    return income.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.getFullYear() === selectedDate.year && 
+             itemDate.getMonth() === selectedDate.month;
+    });
+  }, [income, selectedDate]);
+
+  const selectedMonthExpenses = useMemo(() => {
+    return expenses.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.getFullYear() === selectedDate.year && 
+             itemDate.getMonth() === selectedDate.month;
+    });
+  }, [expenses, selectedDate]);
 
   const incomeAnalysis = useMemo(() => {
-    // Group income by category
+    // Group income by category (for selected month)
     const categoryMap = new Map<string, IncomeSourceData>();
 
-    income.forEach(item => {
+    selectedMonthIncome.forEach(item => {
       const categoryName = item.categories?.name || 'Uncategorized';
       const existing = categoryMap.get(categoryName);
       if (existing) {
@@ -63,12 +165,11 @@ export const AnalysisDashboard = () => {
 
     const sources = Array.from(categoryMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
 
-    // Calculate monthly income trends
+    // Calculate monthly income trends (last 6 months from selected month)
     const last6Months = [];
-    const now = new Date();
 
     for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const date = new Date(selectedDate.year, selectedDate.month - i, 1);
       const monthIncome = income.filter(item => {
         const itemDate = new Date(item.date);
         return itemDate.getFullYear() === date.getFullYear() &&
@@ -83,9 +184,9 @@ export const AnalysisDashboard = () => {
       });
     }
 
-    // Calculate recurring vs one-time income
-    const recurringIncome = income.filter(item => item.is_recurring);
-    const oneTimeIncome = income.filter(item => !item.is_recurring);
+    // Calculate recurring vs one-time income (for selected month)
+    const recurringIncome = selectedMonthIncome.filter(item => item.is_recurring);
+    const oneTimeIncome = selectedMonthIncome.filter(item => !item.is_recurring);
 
     const totalRecurring = recurringIncome.reduce((sum, item) => sum + item.amount, 0);
     const totalOneTime = oneTimeIncome.reduce((sum, item) => sum + item.amount, 0);
@@ -106,13 +207,13 @@ export const AnalysisDashboard = () => {
       },
       totalIncome,
     };
-  }, [income]);
+  }, [income, selectedMonthIncome, selectedDate]);
 
   const expenseAnalysis = useMemo(() => {
-    // Group expenses by category
+    // Group expenses by category (for selected month)
     const categoryMap = new Map<string, ExpenseCategoryData>();
 
-    expenses.forEach(item => {
+    selectedMonthExpenses.forEach(item => {
       const categoryName = item.categories?.name || 'Uncategorized';
       const existing = categoryMap.get(categoryName);
       if (existing) {
@@ -135,12 +236,11 @@ export const AnalysisDashboard = () => {
 
     const categories = Array.from(categoryMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
 
-    // Calculate monthly expense trends
+    // Calculate monthly expense trends (last 6 months from selected month)
     const last6Months = [];
-    const now = new Date();
 
     for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const date = new Date(selectedDate.year, selectedDate.month - i, 1);
       const monthExpenses = expenses.filter(item => {
         const itemDate = new Date(item.date);
         return itemDate.getFullYear() === date.getFullYear() &&
@@ -155,23 +255,25 @@ export const AnalysisDashboard = () => {
       });
     }
 
-    const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
-    const averageExpense = expenses.length > 0 ? totalExpenses / expenses.length : 0;
+    const totalExpenses = selectedMonthExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const averageExpense = selectedMonthExpenses.length > 0 ? totalExpenses / selectedMonthExpenses.length : 0;
 
     return {
       categories,
       last6Months,
       totalExpenses,
       averageExpense,
+      transactionCount: selectedMonthExpenses.length,
     };
-  }, [expenses]);
+  }, [expenses, selectedMonthExpenses, selectedDate]);
 
   const maxMonthlyIncome = Math.max(...incomeAnalysis.last6Months.map(m => m.total));
   const maxMonthlyExpense = Math.max(...expenseAnalysis.last6Months.map(m => m.total));
 
-  const currentMonthIncome = incomeAnalysis.last6Months.at(-1)?.total || 0;
-  const currentMonthExpenses = expenseAnalysis.last6Months.at(-1)?.total || 0;
-  const netIncome = currentMonthIncome - currentMonthExpenses;
+  // Use selected month's data for the overview cards
+  const selectedMonthTotalIncome = incomeAnalysis.totalIncome;
+  const selectedMonthTotalExpenses = expenseAnalysis.totalExpenses;
+  const netIncome = selectedMonthTotalIncome - selectedMonthTotalExpenses;
 
   // Show loading state while data is being fetched
   if (incomeLoading || expensesLoading) {
@@ -216,34 +318,82 @@ export const AnalysisDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Financial Analysis</h1>
-        <p className="text-muted-foreground">Comprehensive analysis of your income and expenses</p>
+      {/* Header with Month Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Financial Analysis</h1>
+          <p className="text-muted-foreground">Comprehensive analysis of your income and expenses</p>
+        </div>
+        
+        {/* Month Selector */}
+        <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToPreviousMonth}
+            disabled={!canGoPrevious}
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <div className="flex items-center gap-2 px-3 min-w-[160px] justify-center">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium text-sm">{selectedMonthLabel}</span>
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextMonth}
+            disabled={!canGoNext}
+            className="h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          
+          {!isCurrentMonth && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToCurrentMonth}
+              className="ml-2 text-xs"
+            >
+              Today
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Month Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(currentMonthIncome)}
+              {formatCurrency(selectedMonthTotalIncome)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedMonthIncome.length} transaction{selectedMonthIncome.length === 1 ? '' : 's'}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Month Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(currentMonthExpenses)}
+              {formatCurrency(selectedMonthTotalExpenses)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedMonthExpenses.length} transaction{selectedMonthExpenses.length === 1 ? '' : 's'}
+            </p>
           </CardContent>
         </Card>
 
@@ -256,6 +406,9 @@ export const AnalysisDashboard = () => {
             <div className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(netIncome)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {netIncome >= 0 ? 'Surplus' : 'Deficit'}
+            </p>
           </CardContent>
         </Card>
 
@@ -266,8 +419,11 @@ export const AnalysisDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {currentMonthIncome > 0 ? ((netIncome / currentMonthIncome) * 100).toFixed(1) : 0}%
+              {selectedMonthTotalIncome > 0 ? ((netIncome / selectedMonthTotalIncome) * 100).toFixed(1) : 0}%
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Of income saved
+            </p>
           </CardContent>
         </Card>
       </div>
