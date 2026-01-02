@@ -47,7 +47,6 @@ export const Dashboard = () => {
     }).reduce((sum, item) => sum + item.amount, 0);
 
     const monthlyTotal = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
     // Calculate net cash flow
     const netMonthlyFlow = monthlyIncome - monthlyTotal;
@@ -58,7 +57,6 @@ export const Dashboard = () => {
     return {
       monthlyExpenses,
       monthlyTotal,
-      totalExpenses,
       recentExpenses,
       monthlyIncome,
       netMonthlyFlow
