@@ -3,13 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Income, useIncome } from '@/hooks/useIncome';
-import { useExpenses } from '@/hooks/useExpenses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
 import { useToast } from '@/hooks/use-toast';
 
 const incomeSchema = z.object({
@@ -26,19 +26,12 @@ type IncomeFormData = z.infer<typeof incomeSchema>;
 interface EditIncomeFormProps {
   income: Income;
   onSuccess?: () => void;
-  onIncomeChange?: () => void;
 }
 
-export const EditIncomeForm = ({ income, onSuccess, onIncomeChange }: EditIncomeFormProps) => {
+export const EditIncomeForm = ({ income, onSuccess }: EditIncomeFormProps) => {
   const { updateIncome } = useIncome();
-  const { categories } = useExpenses();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Filter categories to only show income or both types (or undefined for backward compatibility)
-  const incomeCategories = categories.filter(cat => 
-    !cat.type || cat.type === 'income' || cat.type === 'both'
-  );
 
   const form = useForm<IncomeFormData>({
     resolver: zodResolver(incomeSchema),
@@ -79,7 +72,6 @@ export const EditIncomeForm = ({ income, onSuccess, onIncomeChange }: EditIncome
         title: "Success",
         description: "Income updated successfully",
       });
-      onIncomeChange?.();
       onSuccess?.();
     }
 
@@ -116,26 +108,15 @@ export const EditIncomeForm = ({ income, onSuccess, onIncomeChange }: EditIncome
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {incomeCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <CategorySelectWithCreate
+                  value={field.value || ''}
+                  onValueChange={field.onChange}
+                  placeholder="Select a category"
+                  defaultCategoryType="income"
+                  filterByType="income"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

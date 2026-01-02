@@ -12,6 +12,8 @@ const Expenses = lazy(() => import("./pages/Expenses"));
 const Income = lazy(() => import("./pages/Income"));
 const Analysis = lazy(() => import("./pages/Analysis"));
 const Categories = lazy(() => import("./pages/Categories"));
+const Loans = lazy(() => import("./pages/Loans"));
+const Import = lazy(() => import("./pages/Import"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -37,6 +39,8 @@ const App = () => (
               <Route path="/income" element={<Income />} />
               <Route path="/analysis" element={<Analysis />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/loans" element={<Loans />} />
+              <Route path="/import" element={<Import />} />
               <Route path="/auth" element={<Auth />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

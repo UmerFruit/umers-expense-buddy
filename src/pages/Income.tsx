@@ -13,7 +13,7 @@ import { AddIncomeForm } from '@/components/AddIncomeForm';
 
 const Income = () => {
   const { user, loading } = useAuth();
-  const { income, refetch } = useIncome();
+  const { income } = useIncome();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
 
@@ -31,10 +31,6 @@ const Income = () => {
 
   const handleIncomeAdded = () => {
     setShowAddIncome(false);
-    // Use setTimeout to ensure the UI state is updated before refetch
-    setTimeout(() => {
-      refetch(); // Explicitly refetch income
-    }, 100);
   };
 
   return (
@@ -48,13 +44,7 @@ const Income = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Income</h1>
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <Dialog open={showAddIncome} onOpenChange={(open) => {
-                  setShowAddIncome(open);
-                  if (!open) {
-                    // Refresh data when dialog closes
-                    refetch();
-                  }
-                }}>
+                <Dialog open={showAddIncome} onOpenChange={setShowAddIncome}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="flex-1 sm:flex-none">
                       <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -66,14 +56,14 @@ const Income = () => {
                     <DialogHeader>
                       <DialogTitle>Add New Income</DialogTitle>
                     </DialogHeader>
-                    <AddIncomeForm onSuccess={handleIncomeAdded} onIncomeChange={refetch} />
+                    <AddIncomeForm onSuccess={handleIncomeAdded} />
                   </DialogContent>
                 </Dialog>
               </div>
             </div>
 
             {/* Income Content */}
-            <IncomeManager income={income} onIncomeChange={refetch} />
+            <IncomeManager income={income} />
           </div>
     </div>
   );

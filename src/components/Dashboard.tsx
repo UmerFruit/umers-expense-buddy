@@ -9,28 +9,21 @@ import { ExpenseList } from './ExpenseList';
 import { AddExpenseForm } from './AddExpenseForm';
 import { AddIncomeForm } from './AddIncomeForm';
 import { ExpenseChart } from './ExpenseChart';
+import { LoansSummary } from './LoansSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export const Dashboard = () => {
-  const { expenses, categories, loading, refetch: refetchExpenses } = useExpenses();
-  const { income, refetch: refetchIncome } = useIncome();
+  const { expenses, categories, loading } = useExpenses();
+  const { income } = useIncome();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
 
   const handleExpenseAdded = () => {
     setShowAddExpense(false);
-    // Use setTimeout to ensure the UI state is updated before refetch
-    setTimeout(() => {
-      refetchExpenses(); // Explicitly refetch expenses
-    }, 100);
   };
 
   const handleIncomeAdded = () => {
     setShowAddIncome(false);
-    // Use setTimeout to ensure the UI state is updated before refetch
-    setTimeout(() => {
-      refetchIncome(); // Explicitly refetch income
-    }, 100);
   };
 
   // Calculate statistics with memoization for better performance
@@ -87,13 +80,7 @@ export const Dashboard = () => {
       <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-7xl">
         {/* Stats Cards */}
         <div className="grid gap-4 sm:gap-8 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-12">
-          <Dialog open={showAddExpense} onOpenChange={(open) => {
-            setShowAddExpense(open);
-            if (!open) {
-              // Refresh data when dialog closes
-              refetchExpenses();
-            }
-          }}>
+          <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
             <DialogTrigger asChild>
               <Card className="xs:col-span-2 lg:col-span-1 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-red-50/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -116,20 +103,12 @@ export const Dashboard = () => {
                 <DialogTitle>Add New Expense</DialogTitle>
               </DialogHeader>
               <AddExpenseForm 
-                categories={categories} 
                 onSuccess={handleExpenseAdded}
-                onExpenseChange={refetchExpenses}
               />
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showAddIncome} onOpenChange={(open) => {
-            setShowAddIncome(open);
-            if (!open) {
-              // Refresh data when dialog closes
-              refetchIncome();
-            }
-          }}>
+          <Dialog open={showAddIncome} onOpenChange={setShowAddIncome}>
             <DialogTrigger asChild>
               <Card className="xs:col-span-2 lg:col-span-1 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-green-50/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -186,7 +165,6 @@ export const Dashboard = () => {
                   <ExpenseList
                     expenses={recentExpenses}
                     categories={categories}
-                    onExpenseChange={refetchExpenses}
                   />
                 </CardContent>
               </Card>
@@ -201,6 +179,9 @@ export const Dashboard = () => {
                   <ExpenseChart expenses={monthlyExpenses} categories={categories} />
                 </CardContent>
               </Card>
+              
+              {/* Loans Summary Widget */}
+              <LoansSummary />
             </div>
           </div>
         </div>

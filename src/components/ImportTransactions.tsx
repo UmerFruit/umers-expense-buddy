@@ -1,27 +1,26 @@
 // Import Transactions Component
 // Allows users to import bank statements from PDF or CSV files
+// Now works as a standalone page component with improved mobile layout
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Category } from '@/hooks/useExpenses';
 import { parseBankPDF, parseCSVFile, ParsedTransaction, convertToImportFormat, ImportTransaction } from '@/utils/pdfParser';
 import { formatCurrency } from '@/utils/dateUtils';
-import { Upload, FileText, Loader2, CheckCircle2, XCircle, AlertCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2, XCircle, AlertCircle, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ImportTransactionsProps {
-  categories: Category[];
-  onImportComplete: () => void;
+  // No props needed - TanStack Query handles data updates automatically
 }
 
 interface PreviewTransaction extends ImportTransaction {
@@ -30,12 +29,11 @@ interface PreviewTransaction extends ImportTransaction {
   expanded?: boolean;
 }
 
-export const ImportTransactions = ({ categories, onImportComplete }: ImportTransactionsProps) => {
+export const ImportTransactions = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -44,10 +42,8 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
   const [fileName, setFileName] = useState<string>('');
   const [importStats, setImportStats] = useState<{ success: number; failed: number } | null>(null);
   const [filterTerms, setFilterTerms] = useState<string>('');
-
-  // Filter categories for expenses and income
-  const expenseCategories = categories.filter(cat => !cat.type || cat.type === 'expense' || cat.type === 'both');
-  const incomeCategories = categories.filter(cat => !cat.type || cat.type === 'income' || cat.type === 'both');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,6 +85,7 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
 
       setFullPreview(previewData);
       setPreview(previewData);
+      setCurrentPage(1);
       
       toast({
         title: 'File Parsed Successfully',
@@ -215,7 +212,6 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
       // Clear preview after successful import
       setPreview([]);
       setFileName('');
-      onImportComplete();
     } else {
       toast({
         title: 'Import Failed',
@@ -301,294 +297,358 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
     setImportStats(null);
     setImportProgress(0);
     setFilterTerms('');
+    setCurrentPage(1);
   };
 
   const selectedCount = preview.filter(t => t.selected).length;
   const totalExpenses = preview.filter(t => t.selected && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   const totalIncome = preview.filter(t => t.selected && t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-          <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="hidden xs:inline">Import</span>
-          <span className="xs:hidden">Import</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Import Bank Statement
-          </DialogTitle>
-          <DialogDescription>
-            Upload a PDF or CSV bank statement to import transactions automatically.
-          </DialogDescription>
-        </DialogHeader>
+  // Pagination logic
+  const totalPages = Math.ceil(preview.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPreview = preview.slice(startIndex, endIndex);
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {/* File Upload Section */}
+  // Reset to page 1 when items per page changes
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number.parseInt(value));
+    setCurrentPage(1);
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* File Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <FileText className="h-5 w-5" />
+            Upload File
+          </CardTitle>
+          <CardDescription>
+            Upload a PDF or CSV bank statement to import transactions automatically
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex-1">
+                <Label htmlFor="file-upload" className="sr-only">Upload File</Label>
+                <input
+                  ref={fileInputRef}
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={isLoading || isImporting}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || isImporting}
+                  className="w-full sm:w-auto"
+                  size="lg"
+                >
+                  {getButtonContent()}
+                </Button>
+                {fileName && (
+                  <p className="text-sm text-muted-foreground mt-2 truncate">
+                    <FileText className="inline h-4 w-4 mr-1" />
+                    {fileName}
+                  </p>
+                )}
+              </div>
+              {preview.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={resetImport} 
+                  disabled={isImporting}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <strong>Supported formats:</strong> PDF (bank statement), CSV (Date, Debit, Credit)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Import Progress */}
+      {isImporting && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Importing transactions...</span>
+                <span className="font-medium">{importProgress}%</span>
+              </div>
+              <Progress value={importProgress} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Import Stats */}
+      {importStats && (
+        <Card className={importStats.failed > 0 ? 'border-yellow-500' : 'border-green-500'}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              {importStats.failed === 0 ? (
+                <CheckCircle2 className="h-8 w-8 text-green-500 shrink-0" />
+              ) : (
+                <AlertCircle className="h-8 w-8 text-yellow-500 shrink-0" />
+              )}
+              <div>
+                <p className="font-medium text-base sm:text-lg">Import Complete</p>
+                <p className="text-sm text-muted-foreground">
+                  {importStats.success} imported successfully
+                  {importStats.failed > 0 && `, ${importStats.failed} failed`}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Preview Section */}
+      {preview.length > 0 && (
+        <>
+          {/* Summary Card */}
           <Card>
-            <CardContent className="pt-4">
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4 items-center">
-                  <div className="flex-1 w-full">
-                    <Label htmlFor="file-upload" className="sr-only">Upload File</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        ref={fileInputRef}
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf,.csv"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        disabled={isLoading || isImporting}
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading || isImporting}
-                        className="w-full sm:w-auto"
-                      >
-                        {getButtonContent()}
-                      </Button>
-                      {fileName && (
-                        <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {fileName}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supported formats: PDF (bank statement), CSV (Date, Debit, Credit)
-                    </p>
-                  </div>
-                  {preview.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={resetImport} disabled={isImporting}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Clear
-                    </Button>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">Transaction Preview</CardTitle>
+              <CardDescription>
+                Review and categorize transactions before importing
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filter Terms */}
+              <div className="space-y-2">
+                <Label htmlFor="filter-terms" className="text-sm font-medium">
+                  Filter Terms (Optional)
+                </Label>
+                <Input
+                  id="filter-terms"
+                  type="text"
+                  placeholder="e.g., Umer Farooq, John Doe (comma separated)"
+                  value={filterTerms}
+                  onChange={(e) => applyFilterTerms(e.target.value)}
+                  disabled={isImporting}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Transactions containing these terms will be excluded. Useful for filtering transfers to your own accounts.
+                  {filterTerms && fullPreview.length > preview.length && (
+                    <span className="text-orange-600 font-medium block mt-1">
+                      ⚠️ {fullPreview.length - preview.length} transaction(s) filtered out
+                    </span>
                   )}
+                </p>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="flex flex-wrap gap-3 sm:gap-4 items-center pt-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="select-all"
+                    checked={selectedCount === preview.length}
+                    onCheckedChange={(checked) => toggleAll(!!checked)}
+                  />
+                  <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                    {selectedCount} of {preview.length} selected
+                  </Label>
                 </div>
+                <Badge variant="destructive" className="gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1">
+                  Expenses: {formatCurrency(totalExpenses)}
+                </Badge>
+                <Badge variant="default" className="gap-1 bg-green-600 text-xs sm:text-sm px-2 sm:px-3 py-1">
+                  Income: {formatCurrency(totalIncome)}
+                </Badge>
               </div>
             </CardContent>
           </Card>
 
-          {/* Import Progress */}
-          {isImporting && (
-            <Card>
-              <CardContent className="pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Importing transactions...</span>
-                    <span>{importProgress}%</span>
-                  </div>
-                  <Progress value={importProgress} className="h-2" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Import Stats */}
-          {importStats && (
-            <Card className={importStats.failed > 0 ? 'border-yellow-500' : 'border-green-500'}>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-4">
-                  {importStats.failed === 0 ? (
-                    <CheckCircle2 className="h-8 w-8 text-green-500" />
-                  ) : (
-                    <AlertCircle className="h-8 w-8 text-yellow-500" />
-                  )}
-                  <div>
-                    <p className="font-medium">Import Complete</p>
-                    <p className="text-sm text-muted-foreground">
-                      {importStats.success} imported successfully
-                      {importStats.failed > 0 && `, ${importStats.failed} failed`}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Preview Section */}
-          {preview.length > 0 && (
-            <>
-              {/* Summary */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Preview</CardTitle>
-                  <CardDescription>
-                    Review and categorize transactions before importing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="filter-terms">Filter Terms (Optional)</Label>
-                      <Input
-                        id="filter-terms"
-                        type="text"
-                        placeholder="e.g., Umer Farooq, John Doe (comma separated)"
-                        value={filterTerms}
-                        onChange={(e) => applyFilterTerms(e.target.value)}
-                        disabled={isImporting}
+          {/* Transaction List */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground px-1">
+              Transactions ({preview.length})
+            </h3>
+            <div className="space-y-3">
+              {paginatedPreview.map((transaction) => (
+                <Card 
+                  key={transaction.id} 
+                  className={`transition-all duration-200 ${transaction.selected ? 'border-primary/50' : 'opacity-60'}`}
+                >
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex gap-3">
+                      {/* Checkbox */}
+                      <Checkbox
+                        checked={transaction.selected}
+                        onCheckedChange={() => toggleTransaction(transaction.id)}
+                        className="mt-1 shrink-0"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Transactions containing these terms will be excluded. Useful for filtering transfers to your own accounts.
-                        {filterTerms && fullPreview.length > preview.length && (
-                          <span className="text-orange-600 font-medium"> ({fullPreview.length - preview.length} filtered)</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="select-all"
-                          checked={selectedCount === preview.length}
-                          onCheckedChange={(checked) => toggleAll(!!checked)}
-                        />
-                        <Label htmlFor="select-all">
-                          {selectedCount} of {preview.length} selected
-                        </Label>
-                      </div>
-                      <Badge variant="destructive" className="gap-1">
-                        Expenses: {formatCurrency(totalExpenses)}
-                      </Badge>
-                      <Badge variant="default" className="gap-1 bg-green-600">
-                        Income: {formatCurrency(totalIncome)}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 space-y-3">
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge 
+                            variant={transaction.type === 'expense' ? 'destructive' : 'default'} 
+                            className={`text-xs ${transaction.type === 'income' ? 'bg-green-600' : ''}`}
+                          >
+                            {transaction.type === 'expense' ? 'Expense' : 'Income'}
+                          </Badge>
+                          <span className="text-sm sm:text-base font-semibold">
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {transaction.date}
+                          </span>
+                        </div>
 
-              {/* Transaction List */}
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {preview.map((transaction) => (
-                  <Card 
-                    key={transaction.id} 
-                    className={`transition-opacity ${transaction.selected ? '' : 'opacity-50'}`}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={transaction.selected}
-                          onCheckedChange={() => toggleTransaction(transaction.id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={transaction.type === 'expense' ? 'destructive' : 'default'} 
-                                   className={transaction.type === 'income' ? 'bg-green-600' : ''}>
-                              {transaction.type === 'expense' ? 'Expense' : 'Income'}
-                            </Badge>
-                            <span className="text-sm font-medium">
-                              {formatCurrency(transaction.amount)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {transaction.date}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {transaction.description.length > 60 && !transaction.expanded ? (
-                              <button
-                                onClick={() => toggleExpanded(transaction.id)}
-                                className="text-xs text-muted-foreground hover:text-foreground text-left w-full group"
-                              >
-                                <div className="flex items-start gap-2">
-                                  <span className="flex-1">
-                                    {transaction.description.substring(0, 60)}...
-                                  </span>
-                                  <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 opacity-50 group-hover:opacity-100" />
-                                </div>
-                              </button>
-                            ) : (
-                              <div>
-                                <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                                  {transaction.description}
-                                </p>
-                                {transaction.description.length > 60 && transaction.expanded && (
-                                  <button
-                                    onClick={() => toggleExpanded(transaction.id)}
-                                    className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 mt-1"
-                                  >
-                                    <ChevronUp className="h-3 w-3" />
-                                    Show less
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs shrink-0">Category:</Label>
-                            <Select
-                              value={transaction.category_id || 'none'}
-                              onValueChange={(value) => updateCategory(transaction.id, value === 'none' ? null : value)}
+                        {/* Description */}
+                        <div className="space-y-1">
+                          {transaction.description.length > 80 && !transaction.expanded ? (
+                            <button
+                              onClick={() => toggleExpanded(transaction.id)}
+                              className="text-xs text-muted-foreground hover:text-foreground text-left w-full group transition-colors"
                             >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">No Category</SelectItem>
-                                {(transaction.type === 'expense' ? expenseCategories : incomeCategories).map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.id}>
-                                    <div className="flex items-center gap-2">
-                                      <div 
-                                        className="w-2 h-2 rounded-full" 
-                                        style={{ backgroundColor: cat.color }} 
-                                      />
-                                      {cat.name}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <div className="flex items-start gap-2">
+                                <span className="flex-1 break-words">
+                                  {transaction.description.substring(0, 80)}...
+                                </span>
+                                <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 opacity-50 group-hover:opacity-100" />
+                              </div>
+                            </button>
+                          ) : (
+                            <div>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                                {transaction.description}
+                              </p>
+                              {transaction.description.length > 80 && transaction.expanded && (
+                                <button
+                                  onClick={() => toggleExpanded(transaction.id)}
+                                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 mt-1 transition-colors"
+                                >
+                                  <ChevronUp className="h-3 w-3" />
+                                  Show less
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Category Selector - With improved spacing */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Category</Label>
+                          <div className="relative z-10">
+                            <CategorySelectWithCreate
+                              value={transaction.category_id || ''}
+                              onValueChange={(value) => updateCategory(transaction.id, value || null)}
+                              placeholder="Select or create category"
+                              defaultCategoryType={transaction.type === 'expense' ? 'expense' : 'income'}
+                              showTypeSelector={true}
+                              filterByType={transaction.type === 'expense' ? 'expense' : 'income'}
+                              triggerClassName="h-9 text-sm w-full"
+                            />
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => removeTransaction(transaction.id)}
-                        >
-                          <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
 
-        {/* Footer Actions */}
-        {preview.length > 0 && (
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isImporting}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleImport} 
-              disabled={isImporting || selectedCount === 0}
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Import {selectedCount} Transaction{selectedCount === 1 ? '' : 's'}
-                </>
-              )}
-            </Button>
+                      {/* Delete Button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 self-start"
+                        onClick={() => removeTransaction(transaction.id)}
+                        disabled={isImporting}
+                      >
+                        <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          {/* Pagination Controls */}
+          {preview.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">entries</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {startIndex + 1}-{Math.min(endIndex, preview.length)} of {preview.length}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Import Button - Fixed at bottom */}
+          <Card className="sticky bottom-0 z-20 shadow-lg border-2">
+            <CardContent className="p-4">
+              <Button 
+                onClick={handleImport} 
+                disabled={isImporting || selectedCount === 0}
+                size="lg"
+                className="w-full"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Importing {importProgress}%...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-5 w-5" />
+                    Import {selectedCount} Transaction{selectedCount === 1 ? '' : 's'}
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
   );
 };
 

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, Download, Tag, BarChart3, DollarSign, TrendingUp, LayoutDashboard } from 'lucide-react';
+import { X, Download, Tag, BarChart3, DollarSign, TrendingUp, LayoutDashboard, Users, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +51,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: BarChart3,
     },
     {
+      title: 'Loans',
+      href: '/loans',
+      icon: Users,
+    },
+    {
       title: 'Expenses',
       href: '/expenses',
       icon: DollarSign,
@@ -59,6 +64,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       title: 'Income',
       href: '/income',
       icon: TrendingUp,
+    },
+    {
+      title: 'Import',
+      href: '/import',
+      icon: Upload,
     },
     {
       title: 'Categories',
@@ -139,7 +149,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 className="w-full justify-start hover:bg-accent"
               >
                 <Download className="mr-2 h-4 w-4" />
-                Export CSV
+                Export
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md">
