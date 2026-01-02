@@ -87,40 +87,6 @@ export const Dashboard = () => {
       <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8 max-w-7xl">
         {/* Stats Cards */}
         <div className="grid gap-4 sm:gap-8 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-12">
-          <Dialog open={showAddIncome} onOpenChange={(open) => {
-            setShowAddIncome(open);
-            if (!open) {
-              // Refresh data when dialog closes
-              refetchIncome();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Card className="xs:col-span-2 lg:col-span-1 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-green-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Monthly Income</CardTitle>
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-xl sm:text-3xl font-bold text-green-600">{formatCurrency(monthlyIncome)}</div>
-                    <Plus className="h-5 w-5 text-green-600" />
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    This month
-                  </p>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Income</DialogTitle>
-              </DialogHeader>
-              <AddIncomeForm 
-                onSuccess={handleIncomeAdded}
-              />
-            </DialogContent>
-          </Dialog>
-
           <Dialog open={showAddExpense} onOpenChange={(open) => {
             setShowAddExpense(open);
             if (!open) {
@@ -153,6 +119,40 @@ export const Dashboard = () => {
                 categories={categories} 
                 onSuccess={handleExpenseAdded}
                 onExpenseChange={refetchExpenses}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showAddIncome} onOpenChange={(open) => {
+            setShowAddIncome(open);
+            if (!open) {
+              // Refresh data when dialog closes
+              refetchIncome();
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Card className="xs:col-span-2 lg:col-span-1 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-green-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm sm:text-base font-semibold">Monthly Income</CardTitle>
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-xl sm:text-3xl font-bold text-green-600">{formatCurrency(monthlyIncome)}</div>
+                    <Plus className="h-5 w-5 text-green-600" />
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    This month
+                  </p>
+                </CardContent>
+              </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Income</DialogTitle>
+              </DialogHeader>
+              <AddIncomeForm 
+                onSuccess={handleIncomeAdded}
               />
             </DialogContent>
           </Dialog>
