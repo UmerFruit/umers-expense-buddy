@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -16,8 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/hooks/useExpenses';
 import { parseBankPDF, parseCSVFile, ParsedTransaction, convertToImportFormat, ImportTransaction } from '@/utils/pdfParser';
 import { formatCurrency } from '@/utils/dateUtils';
-import { cleanDescriptionsWithGroq } from '@/utils/groqCleaner';
-import { Upload, FileText, Loader2, CheckCircle2, XCircle, AlertCircle, Trash2, Sparkles } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2, XCircle, AlertCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ImportTransactionsProps {
   categories: Category[];
@@ -27,7 +27,7 @@ interface ImportTransactionsProps {
 interface PreviewTransaction extends ImportTransaction {
   id: string;
   selected: boolean;
-  originalDescription: string;
+  expanded?: boolean;
 }
 
 export const ImportTransactions = ({ categories, onImportComplete }: ImportTransactionsProps) => {
@@ -37,41 +37,17 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
   
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCleaning, setIsCleaning] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [preview, setPreview] = useState<PreviewTransaction[]>([]);
+  const [fullPreview, setFullPreview] = useState<PreviewTransaction[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [importStats, setImportStats] = useState<{ success: number; failed: number } | null>(null);
+  const [filterTerms, setFilterTerms] = useState<string>('');
 
   // Filter categories for expenses and income
   const expenseCategories = categories.filter(cat => !cat.type || cat.type === 'expense' || cat.type === 'both');
   const incomeCategories = categories.filter(cat => !cat.type || cat.type === 'income' || cat.type === 'both');
-
-  const cleanDescriptionsWithAI = async (transactions: PreviewTransaction[]) => {
-    setIsCleaning(true);
-    try {
-      const descriptions = transactions.map(t => t.originalDescription);
-      const cleanedDescriptions = await cleanDescriptionsWithGroq(descriptions);
-      
-      // Update preview with cleaned descriptions
-      return transactions.map((t, index) => ({
-        ...t,
-        description: cleanedDescriptions[index] || t.description,
-      }));
-    } catch (error) {
-      console.error('AI cleaning error:', error);
-      toast({
-        title: 'AI Cleaning Failed',
-        description: error instanceof Error ? error.message : 'Failed to clean descriptions with AI',
-        variant: 'destructive',
-      });
-      // Return original transactions if cleaning fails
-      return transactions;
-    } finally {
-      setIsCleaning(false);
-    }
-  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -104,25 +80,19 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
 
       // Convert to preview format with unique IDs
       const importTransactions = convertToImportFormat(parsedTransactions);
-      let previewData: PreviewTransaction[] = importTransactions.map((t, index) => ({
+      const previewData: PreviewTransaction[] = importTransactions.map((t, index) => ({
         ...t,
         id: `import-${index}-${Date.now()}`,
         selected: true,
-        originalDescription: parsedTransactions[index].description || 'No description',
+        expanded: false,
       }));
 
-      // Always apply AI cleaning following main.js pipeline
-      toast({
-        title: 'Cleaning Descriptions...',
-        description: 'AI is enhancing transaction descriptions. This may take a moment.',
-      });
-      previewData = await cleanDescriptionsWithAI(previewData);
-
+      setFullPreview(previewData);
       setPreview(previewData);
       
       toast({
         title: 'File Parsed Successfully',
-        description: `Found ${parsedTransactions.length} transactions ready for import. AI cleaning applied.`,
+        description: `Found ${parsedTransactions.length} transactions ready for import.`,
       });
     } catch (error) {
       console.error('Parse error:', error);
@@ -147,8 +117,31 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
     ));
   };
 
+  const toggleExpanded = (id: string) => {
+    setPreview(prev => prev.map(t => 
+      t.id === id ? { ...t, expanded: !t.expanded } : t
+    ));
+  };
+
   const toggleAll = (selected: boolean) => {
     setPreview(prev => prev.map(t => ({ ...t, selected })));
+  };
+
+  const applyFilterTerms = (terms: string) => {
+    setFilterTerms(terms);
+    
+    if (!terms.trim()) {
+      setPreview(fullPreview);
+      return;
+    }
+
+    const filterArray = terms.split(',').map(term => term.trim().toLowerCase()).filter(t => t.length > 0);
+    const filtered = fullPreview.filter(t => {
+      const desc = t.description.toLowerCase();
+      return !filterArray.some(term => desc.includes(term));
+    });
+    
+    setPreview(filtered);
   };
 
   const updateCategory = (id: string, categoryId: string | null) => {
@@ -293,14 +286,6 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
         </>
       );
     }
-    if (isCleaning) {
-      return (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Cleaning...
-        </>
-      );
-    }
     return (
       <>
         <Upload className="mr-2 h-4 w-4" />
@@ -311,9 +296,11 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
 
   const resetImport = () => {
     setPreview([]);
+    setFullPreview([]);
     setFileName('');
     setImportStats(null);
     setImportProgress(0);
+    setFilterTerms('');
   };
 
   const selectedCount = preview.filter(t => t.selected).length;
@@ -356,12 +343,12 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
                         accept=".pdf,.csv"
                         onChange={handleFileSelect}
                         className="hidden"
-                        disabled={isLoading || isImporting || isCleaning}
+                        disabled={isLoading || isImporting}
                       />
                       <Button
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading || isImporting || isCleaning}
+                        disabled={isLoading || isImporting}
                         className="w-full sm:w-auto"
                       >
                         {getButtonContent()}
@@ -436,23 +423,42 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="select-all"
-                        checked={selectedCount === preview.length}
-                        onCheckedChange={(checked) => toggleAll(!!checked)}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="filter-terms">Filter Terms (Optional)</Label>
+                      <Input
+                        id="filter-terms"
+                        type="text"
+                        placeholder="e.g., Umer Farooq, John Doe (comma separated)"
+                        value={filterTerms}
+                        onChange={(e) => applyFilterTerms(e.target.value)}
+                        disabled={isImporting}
                       />
-                      <Label htmlFor="select-all">
-                        {selectedCount} of {preview.length} selected
-                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Transactions containing these terms will be excluded. Useful for filtering transfers to your own accounts.
+                        {filterTerms && fullPreview.length > preview.length && (
+                          <span className="text-orange-600 font-medium"> ({fullPreview.length - preview.length} filtered)</span>
+                        )}
+                      </p>
                     </div>
-                    <Badge variant="destructive" className="gap-1">
-                      Expenses: {formatCurrency(totalExpenses)}
-                    </Badge>
-                    <Badge variant="default" className="gap-1 bg-green-600">
-                      Income: {formatCurrency(totalIncome)}
-                    </Badge>
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectedCount === preview.length}
+                          onCheckedChange={(checked) => toggleAll(!!checked)}
+                        />
+                        <Label htmlFor="select-all">
+                          {selectedCount} of {preview.length} selected
+                        </Label>
+                      </div>
+                      <Badge variant="destructive" className="gap-1">
+                        Expenses: {formatCurrency(totalExpenses)}
+                      </Badge>
+                      <Badge variant="default" className="gap-1 bg-green-600">
+                        Income: {formatCurrency(totalIncome)}
+                      </Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -484,17 +490,36 @@ export const ImportTransactions = ({ categories, onImportComplete }: ImportTrans
                               {transaction.date}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate" title={transaction.originalDescription}>
-                            {transaction.originalDescription}
-                          </p>
-                          {transaction.description !== transaction.originalDescription && (
-                            <div className="flex items-center gap-2 text-xs">
-                              <Sparkles className="h-3 w-3 text-yellow-500" />
-                              <span className="font-medium text-foreground">
-                                {transaction.description}
-                              </span>
-                            </div>
-                          )}
+                          <div className="space-y-1">
+                            {transaction.description.length > 60 && !transaction.expanded ? (
+                              <button
+                                onClick={() => toggleExpanded(transaction.id)}
+                                className="text-xs text-muted-foreground hover:text-foreground text-left w-full group"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span className="flex-1">
+                                    {transaction.description.substring(0, 60)}...
+                                  </span>
+                                  <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 opacity-50 group-hover:opacity-100" />
+                                </div>
+                              </button>
+                            ) : (
+                              <div>
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                                  {transaction.description}
+                                </p>
+                                {transaction.description.length > 60 && transaction.expanded && (
+                                  <button
+                                    onClick={() => toggleExpanded(transaction.id)}
+                                    className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 mt-1"
+                                  >
+                                    <ChevronUp className="h-3 w-3" />
+                                    Show less
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <Label className="text-xs shrink-0">Category:</Label>
                             <Select

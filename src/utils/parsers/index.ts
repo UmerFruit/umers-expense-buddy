@@ -9,9 +9,6 @@ import { BankParser } from './types';
 import { detectNayaPay, parseNayaPayText } from './nayapay';
 import { detectHBL, parseHBLText } from './hbl';
 
-// Export cleaning functions
-export { cleanHBLDescriptions } from './hbl';
-
 /**
  * Registry of all supported bank parsers
  */

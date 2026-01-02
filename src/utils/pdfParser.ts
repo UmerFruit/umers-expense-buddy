@@ -27,7 +27,7 @@ async function getPdfJs() {
 
 export type { ParsedTransaction, ImportTransaction, ParseResult } from './parsers/types';
 import { ParsedTransaction, ImportTransaction, ParseResult } from './parsers/types';
-import { detectBank, getSupportedBankNames, cleanHBLDescriptions } from './parsers/index';
+import { detectBank, getSupportedBankNames } from './parsers/index';
 export { detectBank, getSupportedBankNames } from './parsers/index';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -166,18 +166,6 @@ export async function parseStatement(pdfText: string): Promise<ParseResult> {
   console.log(` Parsing ${detectedBank.parser.name} statement...`);
   let transactions = detectedBank.parser.parse(pdfText);
   console.log(` Parsed ${transactions.length} transactions`);
-  
-  // Step 4: Clean descriptions with AI (bank-specific)
-  console.log('Cleaning descriptions with AI...');
-  try {
-    if (detectedBank.id === 'hbl') {
-      transactions = await cleanHBLDescriptions(transactions);
-      console.log(' AI cleaning complete');
-    }
-    // Add other bank cleaning functions here as needed
-  } catch (error) {
-    console.warn(' AI cleaning failed, using basic descriptions:', error);
-  }
   
   // Step 5: Validate transactions
   validateTransactions(transactions, detectedBank.parser.name);

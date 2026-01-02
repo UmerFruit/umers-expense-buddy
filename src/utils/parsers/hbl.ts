@@ -5,7 +5,6 @@
  */
 
 import { ParsedTransaction } from './types.ts';
-import { cleanDescriptionsWithGroq } from '../groqCleaner';
 
 export function detectHBL(pdfText: string): boolean {
   const hblIndicators = [
@@ -96,27 +95,6 @@ export function parseHBLText(text: string): ParsedTransaction[] {
   return transactions;
 }
 
-/**
- * Clean HBL descriptions using AI
- * Call this after parsing to get LLM-cleaned descriptions
- */
-export async function cleanHBLDescriptions(transactions: ParsedTransaction[]): Promise<ParsedTransaction[]> {
-  if (transactions.length === 0) return transactions;
-  
-  try {
-    const rawDescriptions = transactions.map(t => t.description);
-    const cleanedDescriptions = await cleanDescriptionsWithGroq(rawDescriptions);
-    
-    return transactions.map((t, i) => ({
-      ...t,
-      description: cleanedDescriptions[i] || t.description
-    }));
-  } catch (error) {
-    console.warn('Failed to clean descriptions with LLM, using originals:', error);
-    return transactions;
-  }
-}
-
 function parseHBLTransaction(lines: string[]): ParsedTransaction | null {
   if (lines.length === 0) return null;
   
@@ -181,13 +159,34 @@ function cleanHBLDescription(fullText: string, dateStr: string): string {
   cleaned = cleaned.replaceAll(/^\d{2}-\d{2}-\d{4}\s+/g, '').trim();
   
   // Remove all amounts at the end (amounts can have varying decimal places)
+  cleaned = cleaned.replaceAll(/\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s*$/g, ''); // 4 amounts
   cleaned = cleaned.replaceAll(/\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s*$/g, ''); // 3 amounts
   cleaned = cleaned.replaceAll(/\s+[\d,]+\.\d+\s+[\d,]+\.\d+\s*$/g, ''); // 2 amounts
   cleaned = cleaned.replaceAll(/\s+[\d,]+\.\d+\s*$/g, ''); // 1 amount
   
-  // Basic cleanup - remove only obvious noise
-  // The LLM will do the intelligent cleaning
-  cleaned = cleaned.replaceAll(/\d{16,}/g, ''); // Remove very long numbers (card numbers)
+  // Remove currency amounts anywhere in the description (Rs 3,000, PKR 500, etc.)
+  cleaned = cleaned.replaceAll(/\bRs\s*[\d,]+\.?\d*\b/gi, ''); // Rs 3000, Rs3,000, etc.
+  cleaned = cleaned.replaceAll(/\bPKR\s*[\d,]+\.?\d*\b/gi, ''); // PKR 3000, etc.
+  cleaned = cleaned.replaceAll(/\bUSD\s*[\d,]+\.?\d*\b/gi, ''); // USD 3000, etc.
+  cleaned = cleaned.replaceAll(/\b[\d,]+\.\d+\b/g, ''); // Any decimal amounts like 3,000.00
+  
+  // Remove account numbers, IBANs, and other long numbers
+  cleaned = cleaned.replaceAll(/\b\d{10,}\b/g, ''); // Remove long numbers (account numbers, etc.)
+  cleaned = cleaned.replaceAll(/\bPK\d+\b/g, ''); // Remove IBAN prefixes
+  cleaned = cleaned.replaceAll(/\b\d{4}-\d{4}-\d{4}-\d{4}\b/g, ''); // Remove card numbers
+  
+  // Remove common bank noise
+  cleaned = cleaned.replaceAll(/\bHBL\b/gi, '');
+  cleaned = cleaned.replaceAll(/\bHabib Bank\b/gi, '');
+  cleaned = cleaned.replaceAll(/\bMobile\b/gi, '');
+  cleaned = cleaned.replaceAll(/\bTransfer\b/gi, '');
+  cleaned = cleaned.replaceAll(/\bTransaction\b/gi, '');
+  // Remove Thru Raast
+  cleaned = cleaned.replaceAll(/\bThru Raast\b/gi, '');
+  // Remove  IBAN XXXX-5128 pattern 
+  cleaned = cleaned.replaceAll(/\bIBAN\s+[A-Z0-9-]+\b/gi, '');
+  // Remove any word longer than 9 characters (like SM30150819D502A1, MBMB00312189361905839, etc.)
+  cleaned = cleaned.replaceAll(/\S{10,}/g, '');
   
   // Clean up whitespace
   cleaned = cleaned.replaceAll(/\s+/g, ' ').trim();
