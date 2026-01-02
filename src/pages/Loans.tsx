@@ -73,7 +73,7 @@ const getLoanAmountColor = (status: string, loanType: string) => {
 };
 
 // Extracted components
-const LoanCard = ({ loan, onSelect, onDelete }: { loan: Loan; onSelect: (loan: Loan) => void; onDelete?: (loan: Loan) => void }) => (
+const LoanCard = ({ loan, onSelect, onDelete, onQuickPay }: { loan: Loan; onSelect: (loan: Loan) => void; onDelete?: (loan: Loan) => void; onQuickPay?: (loan: Loan) => void }) => (
   <Card 
     className={cn(
       "cursor-pointer transition-all duration-200 hover:shadow-md",
@@ -127,13 +127,13 @@ const LoanCard = ({ loan, onSelect, onDelete }: { loan: Loan; onSelect: (loan: L
 
         {/* Right side: Actions */}
         <div className="flex flex-col items-end gap-2">
-          {loan.status === 'active' && (
+          {loan.status === 'active' && onQuickPay && (
             <Button
               variant="outline"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                // This will be handled by parent
+                onQuickPay(loan);
               }}
               className="text-xs"
             >
@@ -367,92 +367,6 @@ const Loans = () => {
     </div>
   );
 
-  const renderLoanCard = (loan: Loan) => (
-    <Card 
-      className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md",
-        "border-l-4",
-        loan.loan_type === 'lent'? "border-l-green-500 hover:bg-green-50/50 dark:hover:bg-green-950/20" 
-          : "border-l-red-500 hover:bg-red-50/50 dark:hover:bg-red-950/20"
-      )}
-      onClick={() => setSelectedLoan(loan)}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          {/* Left side: Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={cn(
-                "p-1.5 rounded-full",
-                loan.loan_type === 'lent' 
-                  ? "bg-green-100 dark:bg-green-900/30" 
-                  : "bg-red-100 dark:bg-red-900/30"
-              )}>
-                {loan.loan_type === 'lent' ? (
-                  <HandCoins className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Wallet className="h-4 w-4 text-red-600" />
-                )}
-              </div>
-              <span className="font-semibold truncate">{loan.person_name}</span>
-            </div>
-            <p className={cn(
-              "text-2xl font-bold",
-              getLoanAmountColor(loan.status, loan.loan_type)
-            )}>
-              {formatCurrency(loan.total_amount)}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{formatDate(loan.created_at)}</span>
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-xs",
-                  loan.loan_type === 'lent' 
-                    ? "border-green-500 text-green-600" 
-                    : "border-red-500 text-red-600"
-                )}
-              >
-                {loan.loan_type === 'lent' ? 'Lent' : 'Borrowed'}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Right side: Actions */}
-          <div className="flex flex-col items-end gap-2">
-            {loan.status === 'active' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleQuickPay(loan);
-                }}
-                className="text-xs"
-              >
-                <CircleDollarSign className="mr-1 h-3 w-3" />
-                Add Payment
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedLoan(loan);
-              }}
-            >
-              Details
-              <ArrowRight className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   const renderEmptyState = (type: 'active' | 'settled') => (
     <div className="text-center py-12">
       <div className={cn(
@@ -550,7 +464,7 @@ const Loans = () => {
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {activeLoans.map((loan) => (
-                    <LoanCard key={loan.id} loan={loan} onSelect={setSelectedLoan} />
+                    <LoanCard key={loan.id} loan={loan} onSelect={setSelectedLoan} onQuickPay={handleQuickPay} />
                   ))}
                 </div>
               )}

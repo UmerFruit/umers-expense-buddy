@@ -960,16 +960,28 @@ const LoadingSkeleton = () => (
       <p className="text-sm sm:text-base text-muted-foreground">Detailed insights into your financial data</p>
     </div>
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }, (_, i) => `analysis-loading-skeleton-${i}`).map((key, i) => (
-        <Card key={key} className={`hover:shadow-md transition-all duration-200 border-l-4 ${i === 0 ? 'border-l-green-500' : i === 1 ? 'border-l-red-500' : i === 2 ? 'border-l-green-500' : 'border-l-blue-500'}`}>
-          <CardHeader className="pb-3">
-            <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-6 bg-muted rounded w-1/2"></div>
-            </div>
-          </CardHeader>
-        </Card>
-      ))}
+      {Array.from({ length: 4 }, (_, i) => `analysis-loading-skeleton-${i}`).map((key, i) => {
+        let borderClass: string;
+        if (i === 0) {
+          borderClass = 'border-l-green-500';
+        } else if (i === 1) {
+          borderClass = 'border-l-red-500';
+        } else if (i === 2) {
+          borderClass = 'border-l-green-500';
+        } else {
+          borderClass = 'border-l-blue-500';
+        }
+        return (
+          <Card key={key} className={`hover:shadow-md transition-all duration-200 border-l-4 ${borderClass}`}>
+            <CardHeader className="pb-3">
+              <div className="animate-pulse space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-6 bg-muted rounded w-1/2"></div>
+              </div>
+            </CardHeader>
+          </Card>
+        );
+      })}
     </div>
     <div className="grid gap-4 md:grid-cols-2">
       {Array.from({ length: 2 }, (_, i) => `analysis-chart-skeleton-${i}`).map((key) => (
