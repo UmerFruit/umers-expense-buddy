@@ -129,6 +129,74 @@ export type Database = {
           },
         ]
       }
+      loans: {
+        Row: {
+          id: string
+          user_id: string
+          person_name: string
+          total_amount: number
+          loan_type: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          person_name: string
+          total_amount: number
+          loan_type: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          person_name?: string
+          total_amount?: number
+          loan_type?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loan_transactions: {
+        Row: {
+          id: string
+          loan_id: string
+          amount: number
+          transaction_type: string
+          date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          loan_id: string
+          amount: number
+          transaction_type: string
+          date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          loan_id?: string
+          amount?: number
+          transaction_type?: string
+          date?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_transactions_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

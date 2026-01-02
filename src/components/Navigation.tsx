@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { DollarSign, LogOut, User, Menu, Home, Trash2 } from 'lucide-react';
+import { DollarSign, LogOut, User, Menu, Trash2, LayoutDashboard, ChartNoAxesCombined, HandCoins   } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,17 +38,19 @@ export const Navigation = ({ onMenuToggle }: NavigationProps) => {
   const navigate = useNavigate();
 
   const navItems = [
-    { title: 'Dashboard', href: '/', icon: Home },
+    { title: 'Dashboard', href: '/', icon: LayoutDashboard },
+    {title: 'Analysis', href: '/analysis', icon: ChartNoAxesCombined},
+    {title: 'Loans', href: '/loans', icon: HandCoins}
   ];
 
   const handleSignOut = async () => {
     await signOut();
-    
+
     toast({
       title: "Signed out",
       description: "You have been signed out successfully",
     });
-    
+
     // Navigate to auth page after a brief delay to ensure state updates
     setTimeout(() => {
       navigate('/auth', { replace: true });
@@ -137,7 +139,7 @@ export const Navigation = ({ onMenuToggle }: NavigationProps) => {
         {user && (
           <div className="flex items-center space-x-2 sm:space-x-4">
             <span className="text-xs sm:text-sm text-muted-foreground hidden md:inline truncate max-w-[120px] lg:max-w-none">
-              Welcome, {user.email}
+              Welcome, {user?.email?.split("@")[0] ?? "User"}
             </span>
 
             <div className="flex items-center space-x-1 sm:space-x-2">
@@ -151,11 +153,11 @@ export const Navigation = ({ onMenuToggle }: NavigationProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.preventDefault();
                       setShowDeleteDialog(true);
-                    }} 
+                    }}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />

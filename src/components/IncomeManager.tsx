@@ -12,13 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 
 interface IncomeManagerProps {
   income?: Income[];
-  onIncomeChange?: () => void;
 }
 
-export const IncomeManager = ({ income: propIncome, onIncomeChange }: IncomeManagerProps = {}) => {
-  const { income: hookIncome, loading, deleteIncome, refetch } = useIncome();
+export const IncomeManager = ({ income: propIncome }: IncomeManagerProps = {}) => {
+  const { income: hookIncome, loading, deleteIncome } = useIncome();
   const income = propIncome ?? hookIncome;
-  const handleRefetch = onIncomeChange ?? refetch;
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -60,7 +58,6 @@ export const IncomeManager = ({ income: propIncome, onIncomeChange }: IncomeMana
         title: "Success",
         description: "Income deleted successfully",
       });
-      handleRefetch();
     }
     setConfirmDelete({ open: false, income: null });
   };
@@ -209,7 +206,6 @@ export const IncomeManager = ({ income: propIncome, onIncomeChange }: IncomeMana
             <EditIncomeForm
               income={editingIncome}
               onSuccess={() => setEditingIncome(null)}
-              onIncomeChange={handleRefetch}
             />
           )}
         </DialogContent>

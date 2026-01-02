@@ -4,19 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useExpenses, Category, Expense } from '@/hooks/useExpenses';
+import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
+import { useExpenses, Expense } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 interface EditExpenseFormProps {
   expense: Expense;
-  categories: Category[];
   onSuccess: () => void;
-  onExpenseChange?: () => void;
 }
 
-export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChange }: EditExpenseFormProps) => {
+export const EditExpenseForm = ({ expense, onSuccess }: EditExpenseFormProps) => {
   const { updateExpense } = useExpenses();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -72,7 +70,6 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
           title: "Success",
           description: "Expense updated successfully",
         });
-        onExpenseChange?.();
         onSuccess();
       }
     } catch (error) {
@@ -119,27 +116,13 @@ export const EditExpenseForm = ({ expense, categories, onSuccess, onExpenseChang
 
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
-        <Select 
-          value={formData.category_id || ''} 
+        <CategorySelectWithCreate
+          value={formData.category_id || ''}
           onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: category.color }}
-                  />
-                  {category.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Select a category"
+          defaultCategoryType="expense"
+          filterByType="expense"
+        />
       </div>
 
       <div className="space-y-2">

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, Download, Tag, BarChart3, DollarSign, TrendingUp } from 'lucide-react';
+import { X, Download, Tag, BarChart3, DollarSign, TrendingUp, LayoutDashboard, Users, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,9 +41,19 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   const navItems = [
     {
+      title: 'Dashboard',
+      href: '/',
+      icon: LayoutDashboard,
+    },
+    {
       title: 'Analysis',
       href: '/analysis',
       icon: BarChart3,
+    },
+    {
+      title: 'Loans',
+      href: '/loans',
+      icon: Users,
     },
     {
       title: 'Expenses',
@@ -126,7 +136,18 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
         
         <div className={cn("pt-4 border-t", "lg:mt-0")}>
+          {/* Import Button */}
+          <Link to="/import" onClick={onClose}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start hover:bg-accent"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+          </Link>
 
+          {/* Export Dialog */}
           <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
             <DialogTrigger asChild>
               <Button
@@ -134,7 +155,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 className="w-full justify-start hover:bg-accent"
               >
                 <Download className="mr-2 h-4 w-4" />
-                Export CSV
+                Export
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-md">

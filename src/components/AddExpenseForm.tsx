@@ -4,18 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useExpenses, Category } from '@/hooks/useExpenses';
+import { CategorySelectWithCreate } from '@/components/CategorySelectWithCreate';
+import { useExpenses } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 interface AddExpenseFormProps {
-  categories: Category[];
-  onSuccess: () => void;
-  onExpenseChange?: () => void;
+  onSuccess?: () => void;
 }
 
-export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddExpenseFormProps) => {
+export const AddExpenseForm = ({ onSuccess }: AddExpenseFormProps) => {
   const { addExpense } = useExpenses();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -80,8 +78,7 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
           description: '',
         });
 
-        onExpenseChange?.();
-        onSuccess();
+        onSuccess?.();
       }
     } catch (error) {
       toast({
@@ -127,27 +124,13 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
 
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
-        <Select
+        <CategorySelectWithCreate
           value={formData.category_id}
           onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  {category.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Select a category"
+          defaultCategoryType="expense"
+          filterByType="expense"
+        />
       </div>
 
       <div className="space-y-2">
@@ -162,9 +145,6 @@ export const AddExpenseForm = ({ categories, onSuccess, onExpenseChange }: AddEx
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onSuccess}>
-          Cancel
-        </Button>
         <Button type="submit" disabled={loading}>
           {loading ? (
             <>

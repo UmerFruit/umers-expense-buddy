@@ -13,10 +13,9 @@ import { ConfirmDialog } from './ConfirmDialog';
 interface ExpenseListProps {
   expenses: Expense[];
   categories: Category[];
-  onExpenseChange?: () => void;
 }
 
-export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseListProps) => {
+export const ExpenseList = ({ expenses, categories }: ExpenseListProps) => {
   const { deleteExpense } = useExpenses();
   const { toast } = useToast();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -59,7 +58,6 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
         title: "Success",
         description: "Expense deleted successfully",
       });
-      onExpenseChange?.();
     }
   };
 
@@ -178,9 +176,7 @@ export const ExpenseList = ({ expenses, categories, onExpenseChange }: ExpenseLi
           {editingExpense && (
             <EditExpenseForm
               expense={editingExpense}
-              categories={categories}
               onSuccess={() => setEditingExpense(null)}
-              onExpenseChange={onExpenseChange}
             />
           )}
         </DialogContent>

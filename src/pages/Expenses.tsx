@@ -10,12 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
-import { ImportTransactions } from '@/components/ImportTransactions';
 import { useState } from 'react';
 
 const Expenses = () => {
   const { user, loading: authLoading } = useAuth();
-  const { expenses, categories, loading: expensesLoading, refetch: refetchExpenses } = useExpenses();
+  const { expenses, categories, loading: expensesLoading } = useExpenses();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -33,10 +32,6 @@ const Expenses = () => {
 
   const handleExpenseAdded = () => {
     setShowAddExpense(false);
-    // Use setTimeout to ensure the UI state is updated before refetch
-    setTimeout(() => {
-      refetchExpenses(); // Explicitly refetch expenses
-    }, 100);
   };
 
   if (expensesLoading) {
@@ -75,17 +70,7 @@ const Expenses = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Expenses</h1>
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <ImportTransactions
-                  categories={categories}
-                  onImportComplete={refetchExpenses}
-                />
-                <Dialog open={showAddExpense} onOpenChange={(open) => {
-                  setShowAddExpense(open);
-                  if (!open) {
-                    // Refresh data when dialog closes
-                    refetchExpenses();
-                  }
-                }}>
+                <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="flex-1 sm:flex-none">
                       <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -98,9 +83,7 @@ const Expenses = () => {
                       <DialogTitle>Add New Expense</DialogTitle>
                     </DialogHeader>
                     <AddExpenseForm
-                      categories={categories.filter(cat => !cat.type || cat.type === 'expense' || cat.type === 'both')}
                       onSuccess={handleExpenseAdded}
-                      onExpenseChange={refetchExpenses}
                     />
                   </DialogContent>
                 </Dialog>
@@ -111,7 +94,6 @@ const Expenses = () => {
             <ExpenseList
               expenses={expenses}
               categories={categories.filter(cat => !cat.type || cat.type === 'expense' || cat.type === 'both')}
-              onExpenseChange={refetchExpenses}
             />
           </div>
     </div>
