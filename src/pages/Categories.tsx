@@ -257,106 +257,221 @@ const Categories = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Card className="cursor-pointer hover:shadow-md transition-shadow border-dashed border-2 border-primary">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-center">
-                    <div className="text-center">
-                      <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm text-primary">Add Category</p>
+        <div className="space-y-8">
+          {/* Add Category Card */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow border-dashed border-2 border-primary">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-center">
+                      <div className="text-center">
+                        <Plus className="h-8 w-8 text-primary mx-auto mb-2" />
+                        <p className="text-sm text-primary">Add Category</p>
+                      </div>
                     </div>
+                  </CardHeader>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add New Category</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category-name">Category Name</Label>
+                    <Input
+                      id="category-name"
+                      placeholder="Enter category name"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                    />
                   </div>
-                </CardHeader>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Category</DialogTitle>
-              </DialogHeader>
+                  <div className="space-y-2">
+                    <Label>Color</Label>
+                    <ColorPicker 
+                      selectedColor={newCategoryColor} 
+                      onSelectColor={setNewCategoryColor}
+                      predefinedColors={predefinedColors}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Type</Label>
+                    <Select value={newCategoryType} onValueChange={(value: CategoryType) => setNewCategoryType(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="both">Both (Income & Expense)</SelectItem>
+                        <SelectItem value="income">Income Only</SelectItem>
+                        <SelectItem value="expense">Expense Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setNewCategoryName('');
+                        setNewCategoryColor('#EF4444');
+                        setNewCategoryType('both');
+                        setShowAddDialog(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddCategory} disabled={loading}>
+                      {loading ? 'Adding...' : 'Add Category'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Expense Categories */}
+          {(() => {
+            const expenseCategories = categories.filter(cat => cat.type === 'expense');
+            if (expenseCategories.length === 0) return null;
+            return (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category-name">Category Name</Label>
-                  <Input
-                    id="category-name"
-                    placeholder="Enter category name"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="h-6 w-1 bg-red-500 rounded-full"></div>
+                  <h2 className="text-xl font-semibold text-red-700">Expense Categories</h2>
+                  <span className="text-sm text-muted-foreground">({expenseCategories.length})</span>
                 </div>
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <ColorPicker 
-                    selectedColor={newCategoryColor} 
-                    onSelectColor={setNewCategoryColor}
-                    predefinedColors={predefinedColors}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Type</Label>
-                  <Select value={newCategoryType} onValueChange={(value: CategoryType) => setNewCategoryType(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="both">Both (Income & Expense)</SelectItem>
-                      <SelectItem value="income">Income Only</SelectItem>
-                      <SelectItem value="expense">Expense Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setNewCategoryName('');
-                      setNewCategoryColor('#EF4444');
-                      setNewCategoryType('both');
-                      setShowAddDialog(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddCategory} disabled={loading}>
-                    {loading ? 'Adding...' : 'Add Category'}
-                  </Button>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {expenseCategories.map((category) => (
+                    <Card key={category.id} className="relative group">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <ColorDot color={category.color} />
+                            <CardTitle className="text-lg">{category.name}</CardTitle>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleStartEdit(category)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteCategory(category.id, category.name)}
+                              disabled={deletingId === category.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            );
+          })()}
 
-          {categories.map((category) => (
-            <Card key={category.id} className="relative group">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <ColorDot color={category.color} />
-                    <CardTitle className="text-lg">{category.name}</CardTitle>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => handleStartEdit(category)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteCategory(category.id, category.name)}
-                      disabled={deletingId === category.id}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+          {/* Income Categories */}
+          {(() => {
+            const incomeCategories = categories.filter(cat => cat.type === 'income');
+            if (incomeCategories.length === 0) return null;
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-6 w-1 bg-green-500 rounded-full"></div>
+                  <h2 className="text-xl font-semibold text-green-700">Income Categories</h2>
+                  <span className="text-sm text-muted-foreground">({incomeCategories.length})</span>
                 </div>
-              </CardHeader>
-            </Card>
-          ))}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {incomeCategories.map((category) => (
+                    <Card key={category.id} className="relative group">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <ColorDot color={category.color} />
+                            <CardTitle className="text-lg">{category.name}</CardTitle>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleStartEdit(category)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteCategory(category.id, category.name)}
+                              disabled={deletingId === category.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* General Categories (Both) */}
+          {(() => {
+            const generalCategories = categories.filter(cat => cat.type === 'both' || !cat.type);
+            if (generalCategories.length === 0) return null;
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-6 w-1 bg-blue-500 rounded-full"></div>
+                  <h2 className="text-xl font-semibold text-blue-700">General Categories</h2>
+                  <span className="text-sm text-muted-foreground">({generalCategories.length})</span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {generalCategories.map((category) => (
+                    <Card key={category.id} className="relative group">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <ColorDot color={category.color} />
+                            <CardTitle className="text-lg">{category.name}</CardTitle>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleStartEdit(category)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteCategory(category.id, category.name)}
+                              disabled={deletingId === category.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {categories.length === 0 && (
